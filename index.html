@@ -383,6 +383,38 @@ textarea:disabled { opacity: 0.3; }
 (function () {
 'use strict';
 
+/* ── SUPABASE ─────────────────────────────── */
+const SB_URL = 'https://xylkhttydhiemwwvapor.supabase.co';
+const SB_KEY = 'sb_publishable_FUJrdZvQXijC0xWhT1rC3Q_-CVyPzMS';
+const HEADERS = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+
+async function sbGet(user, date) {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/ritual_data?user_id=eq.${user}&date=eq.${date}&select=data`, { headers: HEADERS });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows.length ? rows[0].data : null;
+  } catch { return null; }
+}
+
+async function sbUpsert(user, date, data) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/ritual_data`, {
+      method: 'POST',
+      headers: { ...HEADERS, Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ user_id: user, date, data }),
+    });
+  } catch {}
+}
+
+async function sbDelete(user, date) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/ritual_data?user_id=eq.${user}&date=eq.${date}`, {
+      method: 'DELETE', headers: HEADERS,
+    });
+  } catch {}
+}
+
 /* ── DATA ─────────────────────────────────── */
 const SHARED_DAILY = [
   { id:'wake',    label:'Wake up before 5:00 AM',                      type:'check',      section:'Daily' },
@@ -416,6 +448,7 @@ const CONFIGS = {
 };
 
 const STATE = { adi:{ unlocked:false }, sweety:{ unlocked:false } };
+const CACHE = { adi: null, sweety: null }; // in-memory mirror of Supabase
 
 /* ── UTILS ────────────────────────────────── */
 function todayKey() {
@@ -428,11 +461,7 @@ function dateStr() {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 }
-function loadSaved(user) {
-  const raw = localStorage.getItem('ritual2-' + user);
-  if (!raw) return null;
-  try { const d = JSON.parse(raw); return d._date === todayKey() ? d : null; } catch { return null; }
-}
+function loadSaved(user) { return CACHE[user]; }
 
 /* ── RENDER ───────────────────────────────── */
 function renderList(user) {
@@ -518,8 +547,7 @@ function updateProgress(user) {
 
   const pctEl = document.getElementById('pct-' + user);
   pctEl.textContent = pct + '%';
-  if (pct === 100) pctEl.style.textShadow = `0 0 20px rgba(201,168,76,0.5)`;
-  else pctEl.style.textShadow = '';
+  pctEl.style.textShadow = pct === 100 ? '0 0 20px rgba(201,168,76,0.5)' : '';
 
   const sub = document.getElementById('sub-' + user);
   if (sub) sub.textContent = done > 0 ? `${done} of ${total} done` : "Today's habits";
@@ -531,8 +559,7 @@ function updateProgress(user) {
 }
 
 function checkBothDone() {
-  const users = ['adi','sweety'];
-  const allDone = users.every(u => {
+  const allDone = ['adi','sweety'].every(u => {
     const checkable = CONFIGS[u].habits.filter(h => h.type !== 'text');
     return checkable.length > 0 && checkable.every(h => {
       const cb = document.getElementById(`cb-${u}-${h.id}`);
@@ -594,31 +621,67 @@ function enforceWordLimit(ta, limit) {
   if (wcEl) wcEl.textContent = `${words.length} / ${limit} words`;
 }
 
+/* ── SAVE (Supabase + cache) ──────────────── */
+let saveTimers = {};
 function saveProgress(user) {
   if (!STATE[user].unlocked) return;
-  const data = { _date: todayKey() };
+  const data = {};
   for (const h of CONFIGS[user].habits) {
     if (h.type !== 'text')  data['cb-'+h.id]  = document.getElementById(`cb-${user}-${h.id}`)?.checked || false;
     if (h.type !== 'check') data['txt-'+h.id] = document.getElementById(`txt-${user}-${h.id}`)?.value || '';
   }
-  localStorage.setItem('ritual2-' + user, JSON.stringify(data));
+  CACHE[user] = data; // update cache immediately
+  // debounce DB writes by 800ms so rapid clicks don't hammer Supabase
+  clearTimeout(saveTimers[user]);
+  saveTimers[user] = setTimeout(() => sbUpsert(user, todayKey(), data), 800);
+}
+
+/* ── POLLING (sync other panel every 12s) ─── */
+async function pollRemote(user) {
+  // Don't overwrite what the unlocked user is actively editing
+  if (STATE[user].unlocked) return;
+  const fresh = await sbGet(user, todayKey());
+  if (!fresh) return;
+  // Only re-render if data actually changed
+  const prev = JSON.stringify(CACHE[user]);
+  const next = JSON.stringify(fresh);
+  if (prev === next) return;
+  CACHE[user] = fresh;
+  renderList(user);
+}
+
+function startPolling() {
+  setInterval(() => { pollRemote('adi'); pollRemote('sweety'); }, 12000);
 }
 
 /* ── INIT ─────────────────────────────────── */
-const ds = dateStr();
-['adi','sweety'].forEach(u => {
-  document.getElementById('date-' + u).textContent = ds;
-  renderList(u);
-  document.getElementById('abtn-' + u).addEventListener('click', () => doAuth(u));
-  document.getElementById('pwd-'  + u).addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(u); });
-  const rb = document.getElementById('reset-' + u);
-  rb.addEventListener('click', () => {
-    if (!confirm("Reset all of today's progress?")) return;
-    localStorage.removeItem('ritual2-' + u);
+async function init() {
+  const ds = dateStr();
+  document.getElementById('w-date').textContent = ds;
+
+  // Load both users' data from Supabase before rendering
+  const [adiData, sweetyData] = await Promise.all([
+    sbGet('adi', todayKey()),
+    sbGet('sweety', todayKey()),
+  ]);
+  CACHE.adi    = adiData    || null;
+  CACHE.sweety = sweetyData || null;
+
+  ['adi','sweety'].forEach(u => {
+    document.getElementById('date-' + u).textContent = ds;
     renderList(u);
+    document.getElementById('abtn-' + u).addEventListener('click', () => doAuth(u));
+    document.getElementById('pwd-'  + u).addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(u); });
+    document.getElementById('reset-' + u).addEventListener('click', async () => {
+      if (!confirm("Reset all of today's progress?")) return;
+      await sbDelete(u, todayKey());
+      CACHE[u] = null;
+      renderList(u);
+    });
   });
-});
-document.getElementById('w-date').textContent = ds;
+
+  startPolling();
+}
 
 document.getElementById('enter-btn').addEventListener('click', () => {
   const w = document.getElementById('welcome');
@@ -628,6 +691,8 @@ document.getElementById('enter-btn').addEventListener('click', () => {
     document.getElementById('app').classList.add('visible');
   }, 720);
 });
+
+init();
 
 })();
 </script>
