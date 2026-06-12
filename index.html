@@ -401,12 +401,18 @@ async function sbGet(user, date) {
 
 async function sbUpsert(user, date, data) {
   try {
-    await fetch(`${SB_URL}/rest/v1/ritual_data`, {
+    const res = await fetch(`${SB_URL}/rest/v1/ritual_data`, {
       method: 'POST',
       headers: { ...HEADERS, Prefer: 'resolution=merge-duplicates' },
       body: JSON.stringify({ user_id: user, date, data }),
     });
-  } catch {}
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('[ritual] upsert failed', res.status, err);
+    } else {
+      console.log('[ritual] saved ok', user, Object.keys(data).length, 'keys');
+    }
+  } catch(e) { console.error('[ritual] upsert error', e); }
 }
 
 async function sbDelete(user, date) {
