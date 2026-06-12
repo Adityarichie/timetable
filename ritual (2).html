@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adi & Shreya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #09090b;
+  --bg1:      #111113;
+  --bg2:      #18181b;
+  --surface:  #1e1e21;
+  --line:     rgba(255,255,255,0.07);
+  --line2:    rgba(255,255,255,0.04);
+  --gold:     #c9a84c;
+  --gold-dim: rgba(201,168,76,0.12);
+  --gold-faint: rgba(201,168,76,0.05);
+  --text:     #f4f0e8;
+  --text2:    #9c9890;
+  --text3:    #4a4845;
+  --rose:     #7c3d2e;
+  --rose2:    #b0503a;
+  --radius:   3px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ── WELCOME ──────────────────────────────────── */
+#welcome {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: var(--bg);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+#welcome.exit { opacity: 0; transform: scale(0.98); pointer-events: none; }
+
+.w-mark {
+  width: 1px; height: 48px;
+  background: linear-gradient(to bottom, transparent, var(--gold), transparent);
+  margin-bottom: 2.5rem;
+  opacity: 0; animation: rise 0.9s ease 0.2s forwards;
+}
+.w-over {
+  font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 1.6rem;
+  opacity: 0; animation: rise 0.9s ease 0.4s forwards;
+}
+.w-names {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  font-weight: 400; font-style: italic;
+  line-height: 1; letter-spacing: -0.03em;
+  color: var(--text); text-align: center;
+  opacity: 0; animation: rise 1s ease 0.55s forwards;
+}
+.w-amp {
+  color: var(--gold); font-style: normal;
+  display: inline-block; font-family: 'Playfair Display', serif;
+  font-size: 0.7em; vertical-align: middle;
+  margin: 0 0.3em;
+}
+.w-rule {
+  display: flex; align-items: center; gap: 1rem;
+  margin: 2rem 0 1.8rem;
+  opacity: 0; animation: fade 1s ease 1s forwards;
+}
+.w-rule-line {
+  width: 56px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line));
+}
+.w-rule-line:last-child { background: linear-gradient(90deg, var(--line), transparent); }
+.w-rule-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text3); }
+.w-sub {
+  font-size: 0.62rem; letter-spacing: 0.18em;
+  color: var(--text3); text-transform: uppercase;
+  opacity: 0; animation: fade 1s ease 1.2s forwards;
+}
+.w-btn {
+  margin-top: 3rem;
+  background: transparent;
+  border: 1px solid rgba(201,168,76,0.4);
+  color: var(--gold);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem; font-weight: 400;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  padding: 0.9rem 2.6rem;
+  position: relative; overflow: hidden;
+  transition: color 0.3s, letter-spacing 0.3s;
+  opacity: 0; animation: rise 0.8s ease 1.6s forwards;
+}
+.w-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--gold);
+  transform: translateX(-102%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.w-btn:hover { color: var(--bg); letter-spacing: 0.27em; }
+.w-btn:hover::before { transform: translateX(0); }
+.w-btn span { position: relative; z-index: 1; }
+.w-date {
+  margin-top: 1.6rem; font-size: 0.55rem;
+  color: var(--text3); letter-spacing: 0.14em; text-transform: uppercase;
+  opacity: 0; animation: fade 1s ease 2s forwards;
+}
+
+/* ── APP ──────────────────────────────────────── */
+#app {
+  position: fixed; inset: 0;
+  display: grid; grid-template-columns: 1fr 1px 1fr;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.5s ease 0.15s;
+}
+#app.visible { opacity: 1; pointer-events: auto; }
+
+#divider {
+  background: var(--line);
+  position: relative;
+  transition: background 1.2s ease;
+}
+#divider.glow {
+  background: var(--gold);
+  box-shadow: 0 0 24px rgba(201,168,76,0.5);
+}
+
+.panel {
+  overflow-y: auto; height: 100vh;
+  padding: 2.8rem 2.8rem 4rem;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+}
+.panel::-webkit-scrollbar { width: 2px; }
+.panel::-webkit-scrollbar-thumb { background: var(--line); }
+
+/* panel header */
+.ph { margin-bottom: 2rem; padding-bottom: 1.6rem; border-bottom: 1px solid var(--line2); }
+.ph-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.4rem; font-style: italic; font-weight: 400;
+  color: var(--text); line-height: 1; letter-spacing: -0.02em;
+}
+.ph-name strong { color: var(--gold); font-weight: 400; font-style: normal; }
+.ph-date { margin-top: 0.5rem; font-size: 0.55rem; color: var(--text3); letter-spacing: 0.15em; text-transform: uppercase; }
+
+/* progress */
+.prog {
+  display: flex; align-items: center; gap: 1.2rem;
+  padding: 1rem 1.2rem; margin-bottom: 1.6rem;
+  background: var(--bg1); border: 1px solid var(--line2);
+}
+.prog-pct {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem; font-weight: 400; color: var(--gold);
+  min-width: 52px; line-height: 1;
+  transition: color 0.5s;
+}
+.prog-right { flex: 1; }
+.prog-track { height: 1px; background: var(--surface); position: relative; overflow: visible; }
+.prog-fill { height: 1px; background: var(--gold); width: 0%; transition: width 0.7s cubic-bezier(0.4,0,0.2,1); }
+.prog-fill::after {
+  content: ''; position: absolute; right: 0; top: 50%;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--gold); transform: translate(50%,-50%);
+  opacity: 0; transition: opacity 0.4s;
+}
+.prog-fill.active::after { opacity: 1; }
+.prog-label {
+  margin-top: 0.45rem; font-size: 0.52rem;
+  letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase;
+}
+
+/* auth */
+.auth {
+  display: flex; gap: 0.5rem; align-items: center;
+  margin-bottom: 1.8rem; padding: 0.8rem 1rem;
+  border: 1px solid var(--line2); background: var(--bg1);
+  transition: border-color 0.25s;
+}
+.auth:focus-within { border-color: rgba(201,168,76,0.3); }
+.auth input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: 'Inter', sans-serif;
+  font-size: 0.7rem; font-weight: 300; letter-spacing: 0.04em;
+}
+.auth input::placeholder { color: var(--text3); }
+.auth-btn {
+  background: transparent; border: 1px solid var(--line);
+  color: var(--text2); font-family: 'Inter', sans-serif;
+  font-size: 0.55rem; font-weight: 400;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  padding: 0.4rem 0.85rem;
+  transition: all 0.2s ease; white-space: nowrap;
+}
+.auth-btn:hover { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.auth-status {
+  font-size: 0.55rem; color: var(--text3);
+  letter-spacing: 0.04em; white-space: nowrap;
+}
+.auth-status.ok { color: var(--gold); }
+.auth-status.err { color: var(--rose2); }
+
+/* section labels */
+.sec-label {
+  font-size: 0.5rem; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--text3); padding: 1.4rem 0 0.65rem;
+  display: flex; align-items: center; gap: 0.8rem;
+}
+.sec-label::after { content: ''; flex: 1; height: 1px; background: var(--line2); }
+
+/* habits */
+.habit {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--line2);
+  transition: opacity 0.3s, background 0.2s;
+}
+.habit.unlocked:hover { background: var(--gold-faint); padding-left: 0.5rem; transition: background 0.15s, padding 0.15s; }
+.habit.locked-done { opacity: 0.4; }
+.habit.locked-undone { opacity: 0.1; pointer-events: none; }
+.habit.done .h-label { color: var(--text3); text-decoration: line-through; text-decoration-color: var(--gold); text-decoration-thickness: 1px; }
+
+.h-row { display: flex; align-items: flex-start; gap: 0.9rem; }
+
+.hcb {
+  appearance: none; width: 15px; height: 15px; min-width: 15px;
+  border: 1px solid var(--text3); background: transparent;
+  position: relative; margin-top: 3px; flex-shrink: 0;
+  border-radius: var(--radius);
+  transition: background 0.18s, border-color 0.18s;
+}
+.hcb:checked { background: var(--gold); border-color: var(--gold); }
+.hcb:checked::after {
+  content: ''; position: absolute;
+  top: 2px; left: 5px; width: 4px; height: 7px;
+  border: 1.5px solid var(--bg); border-top: none; border-left: none;
+  transform: rotate(45deg);
+}
+.hcb:disabled { opacity: 0.4; }
+.hcb:not(:disabled) { cursor: pointer; }
+
+.h-label {
+  font-size: 0.7rem; font-weight: 300; color: var(--text);
+  line-height: 1.7; letter-spacing: 0.01em;
+  transition: color 0.25s;
+}
+
+/* textarea */
+.ta-wrap { margin-top: 0.6rem; }
+textarea {
+  width: 100%; background: var(--bg1);
+  border: 1px solid var(--line2); color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 0.68rem; font-weight: 300;
+  padding: 0.75rem 0.95rem; resize: vertical; min-height: 54px;
+  outline: none; line-height: 1.75; letter-spacing: 0.01em;
+  border-radius: var(--radius);
+  transition: border-color 0.25s;
+}
+textarea:focus { border-color: rgba(201,168,76,0.35); }
+textarea::placeholder { color: var(--text3); }
+textarea:disabled { opacity: 0.3; }
+.wc { font-size: 0.52rem; color: var(--text3); text-align: right; margin-top: 0.3rem; letter-spacing: 0.06em; }
+
+/* reset */
+.reset-btn {
+  margin-top: auto; padding-top: 2.2rem;
+  background: none; border: none;
+  font-family: 'Inter', sans-serif; font-size: 0.55rem;
+  letter-spacing: 0.16em; color: var(--text3); text-transform: uppercase;
+  display: flex; align-items: center; gap: 0.4rem;
+  opacity: 0; transition: opacity 0.3s, color 0.2s;
+  pointer-events: none;
+}
+.reset-btn.vis { opacity: 1; pointer-events: auto; }
+.reset-btn:hover { color: var(--rose2); }
+
+/* bloom on completion */
+#bloom {
+  position: fixed; inset: 0; z-index: 50;
+  pointer-events: none; opacity: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgba(201,168,76,0.08) 0%, transparent 60%);
+  transition: opacity 1.5s ease;
+}
+#bloom.on { opacity: 1; }
+
+/* animations */
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes reveal { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes pop { 0%,100% { transform: scale(1); } 45% { transform: scale(1.4); } }
+
+/* mobile */
+@media (max-width: 720px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: auto 1px auto; overflow-y: auto; }
+  #app { height: 100vh; overflow-y: auto; }
+  #divider { height: 1px; width: 100%; }
+  .panel { height: auto; overflow-y: visible; }
+  html, body { overflow: auto; }
+}
+</style>
+</head>
+<body>
+
+<div id="bloom"></div>
+
+<!-- WELCOME -->
+<div id="welcome">
+  <div class="w-mark"></div>
+  <p class="w-over">A shared daily ritual</p>
+  <h1 class="w-names">Adi<span class="w-amp">&</span>Shreya</h1>
+  <div class="w-rule">
+    <div class="w-rule-line"></div>
+    <div class="w-rule-dot"></div>
+    <div class="w-rule-line"></div>
+  </div>
+  <p class="w-sub">Track · Reflect · Grow</p>
+  <button class="w-btn" id="enter-btn"><span>Begin Today →</span></button>
+  <p class="w-date" id="w-date"></p>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- ADI -->
+  <div class="panel" id="panel-adi">
+    <div class="ph">
+      <div class="ph-name"><strong>Adi</strong>tya</div>
+      <div class="ph-date" id="date-adi"></div>
+    </div>
+    <div class="prog">
+      <div class="prog-pct" id="pct-adi">0%</div>
+      <div class="prog-right">
+        <div class="prog-track"><div class="prog-fill" id="fill-adi"></div></div>
+        <div class="prog-label" id="sub-adi">Today's habits</div>
+      </div>
+    </div>
+    <div class="auth" id="auth-adi">
+      <input type="password" id="pwd-adi" placeholder="passphrase to edit" autocomplete="off">
+      <button class="auth-btn" id="abtn-adi">unlock</button>
+      <span class="auth-status" id="status-adi">locked</span>
+    </div>
+    <div id="list-adi"></div>
+    <button class="reset-btn" id="reset-adi">↺ Reset today</button>
+  </div>
+
+  <!-- DIVIDER -->
+  <div id="divider"></div>
+
+  <!-- SHREYA -->
+  <div class="panel" id="panel-sweety">
+    <div class="ph">
+      <div class="ph-name"><strong>Shrey</strong>a</div>
+      <div class="ph-date" id="date-sweety"></div>
+    </div>
+    <div class="prog">
+      <div class="prog-pct" id="pct-sweety">0%</div>
+      <div class="prog-right">
+        <div class="prog-track"><div class="prog-fill" id="fill-sweety"></div></div>
+        <div class="prog-label" id="sub-sweety">Today's habits</div>
+      </div>
+    </div>
+    <div class="auth" id="auth-sweety">
+      <input type="password" id="pwd-sweety" placeholder="passphrase to edit" autocomplete="off">
+      <button class="auth-btn" id="abtn-sweety">unlock</button>
+      <span class="auth-status" id="status-sweety">locked</span>
+    </div>
+    <div id="list-sweety"></div>
+    <button class="reset-btn" id="reset-sweety">↺ Reset today</button>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ── DATA ─────────────────────────────────── */
+const SHARED_DAILY = [
+  { id:'wake',    label:'Wake up before 5:00 AM',                      type:'check',      section:'Daily' },
+  { id:'workout', label:'Workout — 45 mins (1 rest day allowed)',       type:'check',      section:'Daily' },
+  { id:'water',   label:'Drink 3 L of water',                          type:'check',      section:'Daily' },
+  { id:'junk',    label:'No junk food (once per 15 days allowed)',      type:'check',      section:'Daily' },
+];
+const SHARED_EVENING = [
+  { id:'music',   label:'Guitar / Piano — 15 mins',                    type:'check',      section:'Evening' },
+  { id:'walk',    label:'3 rounds of walking after dinner',             type:'check',      section:'Evening' },
+  { id:'book',    label:'Read for self-improvement — 15 mins',          type:'check',      section:'Evening' },
+  { id:'screen',  label:'No screens 1 hr after waking & before sleep', type:'check',      section:'Evening' },
+];
+const REFLECT = [{ id:'feelings', label:'How were you feeling about today?', type:'text', section:'Reflection', placeholder:'Write freely…', limit:20 }];
+
+const CONFIGS = {
+  adi: {
+    habits: [
+      ...SHARED_DAILY,
+      { id:'study', label:'Self study — 7 hrs minimum', type:'check_text', section:'Focus', placeholder:'Summarise what you studied today…' },
+      ...SHARED_EVENING, ...REFLECT
+    ]
+  },
+  sweety: {
+    habits: [
+      ...SHARED_DAILY,
+      { id:'study', label:'Self study — 4 hrs minimum', type:'check_text', section:'Focus', placeholder:'Summarise what you studied today…' },
+      ...SHARED_EVENING, ...REFLECT
+    ]
+  },
+};
+
+const STATE = { adi:{ unlocked:false }, sweety:{ unlocked:false } };
+
+/* ── UTILS ────────────────────────────────── */
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function dateStr() {
+  return new Date().toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' }).toUpperCase();
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+function loadSaved(user) {
+  const raw = localStorage.getItem('ritual2-' + user);
+  if (!raw) return null;
+  try { const d = JSON.parse(raw); return d._date === todayKey() ? d : null; } catch { return null; }
+}
+
+/* ── RENDER ───────────────────────────────── */
+function renderList(user) {
+  const el = document.getElementById('list-' + user);
+  const saved = loadSaved(user);
+  const ul = STATE[user].unlocked;
+  let html = '', lastSec = null;
+
+  for (const h of CONFIGS[user].habits) {
+    const sec = h.section || 'Daily';
+    if (sec !== lastSec) { html += `<div class="sec-label">${sec}</div>`; lastSec = sec; }
+
+    const cbId   = `cb-${user}-${h.id}`;
+    const txtId  = `txt-${user}-${h.id}`;
+    const wcId   = `wc-${user}-${h.id}`;
+    const itemId = `item-${user}-${h.id}`;
+    const chk    = saved && h.type !== 'text' ? !!saved['cb-'+h.id] : false;
+    const txt    = saved && h.type !== 'check' ? (saved['txt-'+h.id] || '') : '';
+
+    let cls = 'habit';
+    if (!ul) cls += chk ? ' locked-done' : ' locked-undone';
+    else { cls += ' unlocked'; if (chk) cls += ' done'; }
+
+    html += `<div class="${cls}" id="${itemId}">`;
+
+    if (h.type === 'check' || h.type === 'check_text') {
+      html += `<div class="h-row">
+        <input type="checkbox" class="hcb" id="${cbId}" data-user="${user}" data-id="${h.id}"${chk?' checked':''}${!ul?' disabled':''}>
+        <label class="h-label" for="${cbId}">${h.label}</label>
+      </div>`;
+    } else if (h.type === 'text') {
+      html += `<label class="h-label" style="display:block;margin-bottom:.4rem;opacity:.65">${h.label}</label>`;
+    }
+
+    if (h.type === 'check_text' || h.type === 'text') {
+      const disp = ul ? txt : (txt ? '···' : '');
+      html += `<div class="ta-wrap">
+        <textarea id="${txtId}" data-user="${user}"${h.limit ? ` data-limit="${h.limit}"` : ''} placeholder="${esc(h.placeholder||'')}"${ul?'':' disabled'}>${esc(disp)}</textarea>`;
+      if (h.limit) {
+        const wc = txt.trim() ? txt.trim().split(/\s+/).filter(Boolean).length : 0;
+        html += `<div class="wc" id="${wcId}">${wc} / ${h.limit} words</div>`;
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+
+  if (ul) {
+    el.querySelectorAll('.hcb').forEach(cb => cb.addEventListener('change', () => onCheck(user, cb.dataset.id)));
+    el.querySelectorAll('textarea').forEach(ta => ta.addEventListener('input', () => {
+      const lim = ta.dataset.limit ? parseInt(ta.dataset.limit) : null;
+      if (lim) enforceWordLimit(ta, lim);
+      saveProgress(user);
+    }));
+  }
+  updateProgress(user);
+}
+
+function onCheck(user, hid) {
+  const cb   = document.getElementById(`cb-${user}-${hid}`);
+  const item = document.getElementById(`item-${user}-${hid}`);
+  item.classList.toggle('done', cb.checked);
+  cb.style.animation = 'pop 0.28s ease';
+  cb.addEventListener('animationend', () => cb.style.animation = '', { once:true });
+  updateProgress(user);
+  saveProgress(user);
+}
+
+function updateProgress(user) {
+  const checkable = CONFIGS[user].habits.filter(h => h.type !== 'text');
+  const done = checkable.filter(h => {
+    const cb = document.getElementById(`cb-${user}-${h.id}`);
+    return cb && cb.checked;
+  }).length;
+  const total = checkable.length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+
+  const fill = document.getElementById('fill-' + user);
+  fill.style.width = pct + '%';
+  fill.classList.toggle('active', pct > 0 && pct < 100);
+
+  const pctEl = document.getElementById('pct-' + user);
+  pctEl.textContent = pct + '%';
+  if (pct === 100) pctEl.style.textShadow = `0 0 20px rgba(201,168,76,0.5)`;
+  else pctEl.style.textShadow = '';
+
+  const sub = document.getElementById('sub-' + user);
+  if (sub) sub.textContent = done > 0 ? `${done} of ${total} done` : "Today's habits";
+
+  const rb = document.getElementById('reset-' + user);
+  if (rb) rb.classList.toggle('vis', done > 0 && STATE[user].unlocked);
+
+  checkBothDone();
+}
+
+function checkBothDone() {
+  const users = ['adi','sweety'];
+  const allDone = users.every(u => {
+    const checkable = CONFIGS[u].habits.filter(h => h.type !== 'text');
+    return checkable.length > 0 && checkable.every(h => {
+      const cb = document.getElementById(`cb-${u}-${h.id}`);
+      return cb && cb.checked;
+    });
+  });
+  document.getElementById('divider').classList.toggle('glow', allDone);
+  if (allDone) {
+    const b = document.getElementById('bloom');
+    b.classList.add('on');
+    setTimeout(() => b.classList.remove('on'), 2200);
+  }
+}
+
+/* ── AUTH ─────────────────────────────────── */
+function doAuth(user) {
+  const input  = document.getElementById('pwd-' + user);
+  const status = document.getElementById('status-' + user);
+  const pwd    = input.value.trim();
+  if (!pwd) return;
+
+  const saved = localStorage.getItem('ritual2-pwd-' + user);
+  if (!saved) {
+    if (!confirm(`Set "${pwd}" as your passphrase?\nThis cannot be changed.`)) return;
+    localStorage.setItem('ritual2-pwd-' + user, pwd);
+    doUnlock(user, status);
+  } else if (pwd === saved) {
+    STATE[user].unlocked ? doLock(user, status) : doUnlock(user, status);
+  } else {
+    status.textContent = 'wrong passphrase';
+    status.className = 'auth-status err';
+    setTimeout(() => { status.textContent = 'locked'; status.className = 'auth-status'; }, 1500);
+  }
+  input.value = '';
+}
+
+function doUnlock(user, statusEl) {
+  STATE[user].unlocked = true;
+  statusEl.textContent = 'unlocked';
+  statusEl.className = 'auth-status ok';
+  renderList(user);
+  document.querySelectorAll(`#list-${user} .habit`).forEach((el, i) => {
+    el.style.animation = `reveal 0.3s ease ${i * 0.035}s both`;
+  });
+}
+
+function doLock(user, statusEl) {
+  STATE[user].unlocked = false;
+  statusEl.textContent = 'locked';
+  statusEl.className = 'auth-status';
+  document.getElementById('reset-' + user).classList.remove('vis');
+  renderList(user);
+}
+
+function enforceWordLimit(ta, limit) {
+  let words = ta.value.trim() ? ta.value.trim().split(/\s+/).filter(Boolean) : [];
+  if (words.length > limit) { words = words.slice(0, limit); ta.value = words.join(' '); }
+  const wcEl = document.getElementById(ta.id.replace(/^txt-/, 'wc-'));
+  if (wcEl) wcEl.textContent = `${words.length} / ${limit} words`;
+}
+
+function saveProgress(user) {
+  if (!STATE[user].unlocked) return;
+  const data = { _date: todayKey() };
+  for (const h of CONFIGS[user].habits) {
+    if (h.type !== 'text')  data['cb-'+h.id]  = document.getElementById(`cb-${user}-${h.id}`)?.checked || false;
+    if (h.type !== 'check') data['txt-'+h.id] = document.getElementById(`txt-${user}-${h.id}`)?.value || '';
+  }
+  localStorage.setItem('ritual2-' + user, JSON.stringify(data));
+}
+
+/* ── INIT ─────────────────────────────────── */
+const ds = dateStr();
+['adi','sweety'].forEach(u => {
+  document.getElementById('date-' + u).textContent = ds;
+  renderList(u);
+  document.getElementById('abtn-' + u).addEventListener('click', () => doAuth(u));
+  document.getElementById('pwd-'  + u).addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(u); });
+  const rb = document.getElementById('reset-' + u);
+  rb.addEventListener('click', () => {
+    if (!confirm("Reset all of today's progress?")) return;
+    localStorage.removeItem('ritual2-' + u);
+    renderList(u);
+  });
+});
+document.getElementById('w-date').textContent = ds;
+
+document.getElementById('enter-btn').addEventListener('click', () => {
+  const w = document.getElementById('welcome');
+  w.classList.add('exit');
+  setTimeout(() => {
+    w.style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+  }, 720);
+});
+
+})();
+</script>
+</body>
+</html>
