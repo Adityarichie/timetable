@@ -228,6 +228,7 @@ html, body {
 }
 .habit.unlocked:hover { background: var(--gold-faint); padding-left: 0.5rem; transition: background 0.15s, padding 0.15s; }
 .habit.locked-done { opacity: 0.4; }
+.habit.locked-done .h-label { text-decoration: line-through; text-decoration-color: var(--gold); text-decoration-thickness: 1px; color: var(--text3); }
 .habit.locked-undone { opacity: 0.1; pointer-events: none; }
 .habit.done .h-label { color: var(--text3); text-decoration: line-through; text-decoration-color: var(--gold); text-decoration-thickness: 1px; }
 
@@ -247,7 +248,8 @@ html, body {
   border: 1.5px solid var(--bg); border-top: none; border-left: none;
   transform: rotate(45deg);
 }
-.hcb:disabled { opacity: 0.4; }
+.hcb:disabled { opacity: 0.5; }
+.hcb:checked:disabled { background: var(--gold); border-color: var(--gold); opacity: 0.6; }
 .hcb:not(:disabled) { cursor: pointer; }
 
 .h-label {
