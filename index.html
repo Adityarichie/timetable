@@ -401,18 +401,24 @@ async function sbGet(user, date) {
 
 async function sbUpsert(user, date, data) {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/ritual_data`, {
-      method: 'POST',
-      headers: { ...HEADERS, Prefer: 'resolution=merge-duplicates' },
-      body: JSON.stringify({ user_id: user, date, data }),
+    // PATCH existing row first
+    const patch = await fetch(`${SB_URL}/rest/v1/ritual_data?user_id=eq.${user}&date=eq.${date}`, {
+      method: 'PATCH',
+      headers: { ...HEADERS, Prefer: 'return=representation,count=exact' },
+      body: JSON.stringify({ data }),
     });
-    if (!res.ok) {
-      const err = await res.text();
-      console.error('[ritual] upsert failed', res.status, err);
-    } else {
-      console.log('[ritual] saved ok', user, Object.keys(data).length, 'keys');
+    if (patch.ok) {
+      const rows = await patch.json();
+      if (Array.isArray(rows) && rows.length === 0) {
+        // No existing row — INSERT
+        await fetch(`${SB_URL}/rest/v1/ritual_data`, {
+          method: 'POST',
+          headers: { ...HEADERS, Prefer: 'return=minimal' },
+          body: JSON.stringify({ user_id: user, date, data }),
+        });
+      }
     }
-  } catch(e) { console.error('[ritual] upsert error', e); }
+  } catch(e) { console.error('[ritual] save error', e); }
 }
 
 async function sbDelete(user, date) {
